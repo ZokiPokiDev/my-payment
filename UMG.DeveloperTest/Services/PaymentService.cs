@@ -87,10 +87,12 @@ public class PaymentService : IPaymentService
         if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
         {
             Result.Success = false;
+            return Result;
         }
         else if (account.Balance < request.Amount)
         {
             Result.Success = false;
+            return Result;
         }
 
         Result.Success = true;
@@ -102,10 +104,12 @@ public class PaymentService : IPaymentService
         if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
         {
             Result.Success = false;
+            return Result;
         }
         else if (account.Status != AccountStatus.Live)
         {
             Result.Success = false;
+            return Result;
         }
 
         Result.Success = true;

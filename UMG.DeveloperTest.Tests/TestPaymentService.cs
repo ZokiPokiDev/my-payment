@@ -76,4 +76,22 @@ public class TestPaymentService
 
         Assert.False(result.Success);
     }
+
+    [Theory]
+    [InlineData(AllowedPaymentSchemes.Bacs, PaymentScheme.Chaps)]
+    [InlineData(AllowedPaymentSchemes.FasterPayments, PaymentScheme.Bacs)]
+    [InlineData(AllowedPaymentSchemes.Chaps, PaymentScheme.FasterPayments)]
+    public void TestMakePaymentNotAllowedState(AllowedPaymentSchemes allowedPaymentSchemes, PaymentScheme paymentScheme)
+    {
+        var rand = new Random();
+        decimal amount = rand.Next(100, 1000);
+
+        var fakeAccountRepository = new FakeAccountRepository(allowedPaymentSchemes, amount);
+        var paymentService = new PaymentService(fakeAccountRepository);
+        MakePaymentRequest request = new FakeMakePaymentRequest().CreateFakeMakePaymentRequest(paymentScheme, amount);
+
+        var result = paymentService.MakePayment(request);
+
+        Assert.False(result.Success);
+    }
 }
