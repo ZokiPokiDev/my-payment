@@ -1,4 +1,4 @@
-﻿namespace UMG.DeveloperTest.Types;
+﻿namespace UMG.DeveloperTest.Results;
 
 public class MakePaymentResult
 {

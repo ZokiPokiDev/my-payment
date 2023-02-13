@@ -1,4 +1,5 @@
-﻿using UMG.DeveloperTest.Types;
+﻿using UMG.DeveloperTest.Requests;
+using UMG.DeveloperTest.Results;
 
 namespace UMG.DeveloperTest.Services;
 

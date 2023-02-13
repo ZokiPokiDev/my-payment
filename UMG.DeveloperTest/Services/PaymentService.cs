@@ -1,90 +1,130 @@
-﻿using System.Configuration;
-using UMG.DeveloperTest.Data;
-using UMG.DeveloperTest.Types;
+﻿using Domain.Entities;
+using Domain.Enums;
+using System.Configuration;
+using UMG.DeveloperTest.Repositories;
+using UMG.DeveloperTest.Requests;
+using UMG.DeveloperTest.Results;
 
 namespace UMG.DeveloperTest.Services;
 
 public class PaymentService : IPaymentService
 {
+    public const string DATA_STORE_TYPE_KEY = "DataStoreType";
+    public const string BACKUP_STORE_TYPE = "Backup";
+
+    protected string DataStoreType { get; }
+    protected IAccountRepository AccountRepository { get; }
+    protected MakePaymentResult Result { get; set; }
+
+    private readonly bool _isBackupAccount;
+
+    public PaymentService(IAccountRepository accountRepository)
+    {
+        DataStoreType = ConfigurationManager.AppSettings[DATA_STORE_TYPE_KEY];
+        _isBackupAccount = IsBackupAccount(DataStoreType);
+        AccountRepository = accountRepository;
+        Result = new();
+    }
+
+    public PaymentService(string dataStoreType, IAccountRepository accountRepository)
+    {
+        DataStoreType = dataStoreType;
+        _isBackupAccount = IsBackupAccount(DataStoreType);
+        AccountRepository = accountRepository;
+        Result = new();
+    }
+
     public MakePaymentResult MakePayment(MakePaymentRequest request)
     {
-        var dataStoreType = ConfigurationManager.AppSettings["DataStoreType"];
+        var account = AccountRepository.GetAccount(request.DebtorAccountNumber);
 
-        Account account = null;
-
-        if (dataStoreType == "Backup")
+        if (account == null)
         {
-            var accountDataStore = new BackupAccountDataStore();
-            account = accountDataStore.GetAccount(request.DebtorAccountNumber);
-        }
-        else
-        {
-            var accountDataStore = new AccountDataStore();
-            account = accountDataStore.GetAccount(request.DebtorAccountNumber);
+            Result.Success = false;
+            return Result;
         }
 
-        var result = new MakePaymentResult();
+        Result = ProcessPayment(account, request);
+        UpdateAccountBalance(account, request, Result, _isBackupAccount);
 
+        return Result;
+    }
+
+    private bool IsBackupAccount(string dataStoreType)
+    {
+        return dataStoreType == BACKUP_STORE_TYPE;
+    }
+
+    private MakePaymentResult ProcessPayment(Account account, MakePaymentRequest request)
+    {
         switch (request.PaymentScheme)
         {
             case PaymentScheme.Bacs:
-                if (account == null)
-                {
-                    result.Success = false;
-                }
-                else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs))
-                {
-                    result.Success = false;
-                }
+                Result = ProcessBacsPayment(account);
                 break;
 
             case PaymentScheme.FasterPayments:
-                if (account == null)
-                {
-                    result.Success = false;
-                }
-                else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
-                {
-                    result.Success = false;
-                }
-                else if (account.Balance < request.Amount)
-                {
-                    result.Success = false;
-                }
+                Result = ProcessFasterPayment(account, request);
                 break;
 
             case PaymentScheme.Chaps:
-                if (account == null)
-                {
-                    result.Success = false;
-                }
-                else if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
-                {
-                    result.Success = false;
-                }
-                else if (account.Status != AccountStatus.Live)
-                {
-                    result.Success = false;
-                }
+                Result = ProcessChapsPayment(account);
                 break;
         }
 
-        if (result.Success)
-        {
-            account.Balance -= request.Amount;
+        return Result;
+    }
 
-            if (dataStoreType == "Backup")
-            {
-                var accountDataStore = new BackupAccountDataStore();
-                accountDataStore.UpdateAccount(account);
-            }
-            else
-            {
-                var accountDataStore = new AccountDataStore();
-                accountDataStore.UpdateAccount(account);
-            }
+    private MakePaymentResult ProcessBacsPayment(Account account)
+    {
+        Result.Success = account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Bacs);
+        
+        return Result;
+    }
+
+    private MakePaymentResult ProcessFasterPayment(Account account, MakePaymentRequest request)
+    {
+        if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.FasterPayments))
+        {
+            Result.Success = false;
+        }
+        else if (account.Balance < request.Amount)
+        {
+            Result.Success = false;
         }
 
-        return result;
+        Result.Success = true;
+        return Result;
+    }
+
+    private MakePaymentResult ProcessChapsPayment(Account account)
+    {
+        if (!account.AllowedPaymentSchemes.HasFlag(AllowedPaymentSchemes.Chaps))
+        {
+            Result.Success = false;
+        }
+        else if (account.Status != AccountStatus.Live)
+        {
+            Result.Success = false;
+        }
+
+        Result.Success = true;
+        return Result;
+    }
+
+    private void UpdateAccountBalance(Account account, MakePaymentRequest request, MakePaymentResult result, bool isBackupAccount)
+    {
+        if (!result.Success)
+        {
+            return;
+        }
+        if (account.Balance < request.Amount) 
+        { 
+            result.Success = false;
+            return;
+        }
+
+        account.Balance -= request.Amount;
+        AccountRepository.UpdateAccount(account);
     }
 }

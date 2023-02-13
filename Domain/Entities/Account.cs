@@ -1,4 +1,6 @@
-﻿namespace UMG.DeveloperTest.Types;
+﻿using Domain.Enums;
+
+namespace Domain.Entities;
 
 public class Account
 {

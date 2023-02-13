@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Domain.Enums;
+using System;
 
-namespace UMG.DeveloperTest.Types;
+namespace UMG.DeveloperTest.Requests;
 
 public class MakePaymentRequest
 {

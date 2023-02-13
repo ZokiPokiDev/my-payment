@@ -1,8 +1,8 @@
-using UMG.DeveloperTest.Types;
+using Domain.Entities;
 
-namespace UMG.DeveloperTest.Data;
+namespace UMG.DeveloperTest.Repositories;
 
-public class BackupAccountDataStore
+public class BackupAccountRepository : IAccountRepository
 {
     public Account GetAccount(string accountNumber)
     {

@@ -1,4 +1,4 @@
-﻿namespace UMG.DeveloperTest.Types;
+﻿namespace Domain.Enums;
 
 public enum AccountStatus
 {
