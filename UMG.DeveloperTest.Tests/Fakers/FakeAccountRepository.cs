@@ -1,21 +1,13 @@
 ﻿using Domain.Entities;
 using Domain.Enums;
+using Moq;
 using UMG.DeveloperTest.Repositories;
 
 namespace UMG.DeveloperTest.Tests.Fakers;
 
-public class FakeAccountRepository : IAccountRepository
+public class FakeAccountRepository
 {
-    private AllowedPaymentSchemes _allowedPaymentSchemes { get; }
-    private decimal _balance { get; }
-
-    public FakeAccountRepository(AllowedPaymentSchemes allowedPaymentSchemes, decimal balance)
-    {
-        _allowedPaymentSchemes = allowedPaymentSchemes;
-        _balance = balance;
-    }
-
-    public Account? GetAccount(string accountNumber)
+    public static Account? GetAccount(string accountNumber, AllowedPaymentSchemes allowedPaymentSchemes, decimal balance)
     {
         if (string.IsNullOrWhiteSpace(accountNumber))
         {
@@ -25,14 +17,9 @@ public class FakeAccountRepository : IAccountRepository
         return new Account()
         {
             AccountNumber = accountNumber,
-            AllowedPaymentSchemes = _allowedPaymentSchemes,
-            Balance = _balance,
+            AllowedPaymentSchemes = allowedPaymentSchemes,
+            Balance = balance,
             Status = AccountStatus.Live,
         };
-    }
-
-    public void UpdateAccount(Account account)
-    {
-        return;
     }
 }
